@@ -70,6 +70,7 @@ async def update_status() -> None:
 
 @bot.event
 async def on_ready() -> None:
+    await tree.sync()
     print(f"[Bot] Connecté en tant que {bot.user} (ID: {bot.user.id})")
     print(f"[Bot] Présent sur {len(bot.guilds)} serveur(s)")
     await update_status()
@@ -1011,9 +1012,7 @@ async def build_server(channel, guild: discord.Guild, guild_id):
 # EVENTS
 # ──────────────────────────────────────────────────────────────────────────────
 
-@bot.event
-async def on_ready():
-    await tree.sync()
+
 
 @bot.event
 async def on_guild_join(guild: discord.Guild):
