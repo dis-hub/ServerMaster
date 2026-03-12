@@ -29,6 +29,23 @@ class MyBot(commands.Bot):
 
 bot = MyBot()
 
+async def check_hierarchy(ctx, member: discord.Member, action: str):
+    # Owner bypass total
+    if ctx.author.id == ctx.guild.owner_id:
+        return True
+
+    # Vérifie auteur vs membre
+    if member.top_role >= ctx.author.top_role:
+        await ctx.send(f"Tu ne peux pas {action} un membre avec un rôle supérieur ou égal au tien.")
+        return False
+
+    # Vérifie bot vs membre
+    if member.top_role >= ctx.guild.me.top_role:
+        await ctx.send(f"Je ne peux pas {action} ce membre.")
+        return False
+
+    return True
+
 OWNER_IDS = [1447233337830936807, 1477344366769999913]
 
 
@@ -796,7 +813,65 @@ async def on_guild_join(guild: discord.Guild):
     await ask_type(channel, guild.id)
 
 
+@bot.tree.command(name="ban", description="Bannir un membre")
+@app_commands.describe(member="Le membre à bannir", reason="La raison du ban")
+@app_commands.checks.has_permissions(ban_members=True)
+async def ban(interaction: discord.Interaction, member: discord.Member, reason: str = "Aucune raison fournie"):
+    ctx = await commands.Context.from_interaction(interaction)
+    if not await check_hierarchy(ctx, member, "bannir"):
+        return
+    await member.ban(reason=reason)
+    await interaction.response.send_message(f"✅ {member} a été banni. Raison : {reason}")
 
+@bot.tree.command(name="unban", description="Débannir un utilisateur")
+@app_commands.describe(user_id="L'ID de l'utilisateur à débannir")
+@app_commands.checks.has_permissions(ban_members=True)
+async def unban(interaction: discord.Interaction, user_id: str):
+    user = await bot.fetch_user(int(user_id))
+    await interaction.guild.unban(user)
+    await interaction.response.send_message(f"✅ {user} a été débanni.")
+
+@bot.tree.command(name="clear", description="Supprimer des messages")
+@app_commands.describe(amount="Nombre de messages à supprimer (1-100)")
+@app_commands.checks.has_permissions(manage_messages=True)
+async def clear(interaction: discord.Interaction, amount: int = 10):
+    if amount < 1 or amount > 100:
+        await interaction.response.send_message("❌ Le nombre doit être entre 1 et 100.", ephemeral=True)
+        return
+    await interaction.response.defer(ephemeral=True)
+    deleted = await interaction.channel.purge(limit=amount)
+    await interaction.followup.send(f"✅ {len(deleted)} messages supprimés.")
+
+@bot.tree.command(name="kick", description="Expulser un membre")
+@app_commands.describe(member="Le membre à expulser", reason="La raison du kick")
+@app_commands.checks.has_permissions(kick_members=True)
+async def kick(interaction: discord.Interaction, member: discord.Member, reason: str = "Aucune raison fournie"):
+    ctx = await commands.Context.from_interaction(interaction)
+    if not await check_hierarchy(ctx, member, "expulser"):
+        return
+    await member.kick(reason=reason)
+    await interaction.response.send_message(f"✅ {member} a été expulsé. Raison : {reason}")
+
+@bot.tree.command(name="mute", description="Mute un membre")
+@app_commands.describe(member="Le membre à mute", duration="Durée en minutes", reason="La raison du mute")
+@app_commands.checks.has_permissions(moderate_members=True)
+async def mute(interaction: discord.Interaction, member: discord.Member, duration: int = 10, reason: str = "Aucune raison fournie"):
+    ctx = await commands.Context.from_interaction(interaction)
+    if not await check_hierarchy(ctx, member, "mute"):
+        return
+    until = discord.utils.utcnow() + timedelta(minutes=duration)
+    await member.timeout(until, reason=reason)
+    await interaction.response.send_message(f"✅ {member} a été mute pour {duration} minutes. Raison : {reason}")
+
+@bot.tree.command(name="unmute", description="Unmute un membre")
+@app_commands.describe(member="Le membre à unmute")
+@app_commands.checks.has_permissions(moderate_members=True)
+async def unmute(interaction: discord.Interaction, member: discord.Member):
+    ctx = await commands.Context.from_interaction(interaction)
+    if not await check_hierarchy(ctx, member, "unmute"):
+        return
+    await member.timeout(None)
+    await interaction.response.send_message(f"✅ {member} a été unmute.")
 
 
 bot.run(os.getenv('DISCORD_TOKEN'))
