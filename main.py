@@ -1014,12 +1014,6 @@ async def build_server(channel, guild: discord.Guild, guild_id):
 @bot.event
 async def on_ready():
     await tree.sync()
-    print(f"✅ Connecte en tant que {bot.user} ({bot.user.id})")
-    print("✅ Slash commands synchronisees")
-    await bot.change_presence(activity=discord.Activity(
-        type=discord.ActivityType.watching, name="les serveurs se construire 🛠️"
-    ))
-
 
 @bot.event
 async def on_guild_join(guild: discord.Guild):
