@@ -54,31 +54,33 @@ def is_team_owner():
         return ctx.author.id in OWNER_IDS
     return commands.check(predicate)
 
-async def update_status():
+async def update_status() -> None:
     guild_count = len(bot.guilds)
     activity = discord.CustomActivity(
-        name=f"/help - {guild_count} server"
+        name=f"/help • {guild_count} serveur{'s' if guild_count != 1 else ''}"
     )
-    await bot.change_presence(
-        status=discord.Status.online,  
-        activity=activity
-    ) 
+    try:
+        await bot.change_presence(status=discord.Status.online, activity=activity)
+        print(f"[Status] Mis à jour : {guild_count} serveur(s)")
+    except discord.HTTPException as e:
+        print(f"[Status] Erreur HTTP : {e}")
+    except Exception as e:
+        print(f"[Status] Erreur inattendue : {e}")
 
 
 @bot.event
-async def on_ready():
-    print('Le bot est prêt !')
+async def on_ready() -> None:
+    print(f"[Bot] Connecté en tant que {bot.user} (ID: {bot.user.id})")
+    print(f"[Bot] Présent sur {len(bot.guilds)} serveur(s)")
+    await update_status()
+
+@bot.event
+async def on_guild_join(guild: discord.Guild) -> None:
     await update_status()
 
 
-
 @bot.event
-async def on_guild_join(guild):
-    await update_status()
-
-
-@bot.event
-async def on_guild_remove(guild):
+async def on_guild_remove(guild: discord.Guild) -> None:
     await update_status()
 
 
